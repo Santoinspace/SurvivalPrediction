@@ -7,12 +7,14 @@ def get_args():
     path_group = parser.add_argument_group('路径设置')
     path_group.add_argument('--results_path', default='D:\\AProjection\\SurvivalPrediction\\results',
                             help='结果保存路径')
-    path_group.add_argument('--data_path', default='D:\\AProjection\\SurvivalPrediction\\data\\huaxi', 
+    path_group.add_argument('--data_path', default='D:\\AProjection\\SurvivalPrediction\\data\\preprocessed', 
                             help='数据目录路径')
     path_group.add_argument('--tabular_name', default='clinal_test.csv', 
                             help='临床数据文件名')
-    path_group.add_argument('--model_path', default='D:\\AProjection\\SurvivalPrediction\\results\\checkpoints\\',
+    path_group.add_argument('--model_path', default='D:\\AProjection\\SurvivalPrediction\\results\\checkpoints\\multisurv_new',
                             help='模型保存路径')
+    path_group.add_argument('--summary_path', default='D:\\AProjection\\SurvivalPrediction\\results\\summary\\multisurv_new',
+                            help='TensorBoard 日志保存路径')
 
     # 模型参数
     model_group = parser.add_argument_group('模型参数')
@@ -20,11 +22,11 @@ def get_args():
                            help='表格数据的特征维度')
     model_group.add_argument('--interval_num', type=int, default=4,
                            help='生存区间数量')
-    model_group.add_argument('--train_ratio', type=float, default=0.8,
+    model_group.add_argument('--train_ratio', type=float, default=0.2,
                            help='训练集比例')
-    model_group.add_argument('--val_ratio', type=float, default=0,
+    model_group.add_argument('--val_ratio', type=float, default=0.8,
                            help='验证集比例')
-    model_group.add_argument('--test_ratio', type=float, default=0.2,
+    model_group.add_argument('--test_ratio', type=float, default=0,
                            help='测试集比例')
 
     # 时间区间配置
@@ -32,15 +34,12 @@ def get_args():
     time_group.add_argument('--intervals', nargs='+', type=int, 
                           default=[0, 15, 30, 45, 60],
                           help='生存时间区间分割点')
-    time_group.add_argument('--time_spots', nargs='+', type=int,
-                          default=[1, 3, 5],
-                          help='评估时间点索引')
 
     # 训练配置
     train_group = parser.add_argument_group('训练配置')
     train_group.add_argument('--mode', default='train', choices=['train', 'test'],
                            help='运行模式：训练或测试')
-    train_group.add_argument('--device', default='0', choices=['0', '1'],
+    train_group.add_argument('--device', default='cuda', choices=['cuda', 'cpu'],
                            help='使用的GPU设备编号')
     train_group.add_argument('--seed', type=int, default=0,
                            help='随机种子')
@@ -48,7 +47,7 @@ def get_args():
                            help='交叉验证折数')
     train_group.add_argument('--epoch_num', type=int, default=40,
                            help='训练总轮次')
-    train_group.add_argument('--epoch_save_model_interval', type=int, default=2,
+    train_group.add_argument('--epoch_save_model_interval', type=int, default=8,
                            help='保存模型的间隔轮次')
     train_group.add_argument('--lr', type=float, default=0.01,
                              help='学习率')
@@ -58,19 +57,17 @@ def get_args():
                              help='动量')
     train_group.add_argument('--batch_size', type=int, default=2,
                            help='训练批大小')
-    train_group.add_argument('--batch_size_eval', type=int, default=2,
+    train_group.add_argument('--batch_size_eval', type=int, default=1,
                            help='评估批大小')
     train_group.add_argument('--num_workers', type=int, default=0,
                            help='数据加载线程数')
     train_group.add_argument('--pin_memory', action='store_true',
                             help='是否使用pin_memory')
-    train_group.add_argument('--resume', type=bool, default=True,
+    train_group.add_argument('--resume', type=bool, default=False,
                             help='是否从断点继续训练')
 
     # 可视化配置
     vis_group = parser.add_argument_group('可视化配置')
-    vis_group.add_argument('--summary_path', default='D:\\AProjection\\SurvivalPrediction\\results\\summary',
-                         help='TensorBoard 日志保存路径')
     vis_group.add_argument('--color_train', default='#f14461',
                          help='训练曲线颜色')
     vis_group.add_argument('--color_eval', default='#3498db',

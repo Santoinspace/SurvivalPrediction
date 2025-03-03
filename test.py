@@ -22,11 +22,11 @@ def main():
     """data"""
     train_samples, val_samples, test_samples = split_samples(os.path.join(args.data_path, args.tabular_name), args.train_ratio, args.val_ratio, args.test_ratio)
     test_dataset = MyDataset(args.data_path, args.tabular_name, test_samples, args.intervals, args.mode, get_transforms(), args.seed)
-    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
+    test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=args.batch_size_eval, shuffle=True, num_workers=args.num_workers, drop_last=True)
 
     """model"""
     model = MultiSurv(args.t_dim, args.interval_num).to(args.device)
-    load_model(r'D:\AProjection\SurvivalPrediction\results\checkpoints\best_model.pth', model)
+    load_model(r'D:\AProjection\SurvivalPrediction\results\checkpoints\multisurv_new\best_model.pth', model)
 
     """criterion"""
     criterion = loss_nll

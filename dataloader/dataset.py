@@ -51,7 +51,70 @@ def get_transforms():
             T.ToTensor(),
         ])
 
+"""Dataset for preprocessed images"""
 class MyDataset(Dataset):
+    def __init__(self, root, tabular, samples, intervals, mode='train', transform=None, seed=0):
+        self.root = root
+        self.tabular = tabular
+        self.samples = samples
+        self.intervals = intervals
+        self.mode = mode
+        self.transform = transform
+        self.seed = seed
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        pt, ct = torch.zeros(0), torch.zeros(0)
+        image_list = []
+
+        pt = nib.load(f'{self.root}/pet/{self.samples[idx]}_pet.nii.gz').get_fdata()
+        pt = pt[np.newaxis, ...]
+        # pt preprocess
+        # pt[pt < 100] = 0
+        # pt = self.norm(pt)
+        image_list.append(pt)
+        
+        ct = nib.load(f'{self.root}/ct/{self.samples[idx]}_ct.nii.gz').get_fdata()
+        # ct = self.norm(ct)
+        ct = ct[np.newaxis, ...]
+        image_list.append(ct)
+        
+        # if self.transform:
+        #     image_list = [self.transform(np.squeeze(image, axis=0)).float() for image in image_list]
+        if len(image_list) == 3:
+            pt, ct, seg = image_list
+        else:
+            pt, ct = image_list
+            
+        pt = pt.astype(np.float32)
+        ct = ct.astype(np.float32)
+        pt = torch.from_numpy(pt).float()
+        ct = torch.from_numpy(ct).float()
+
+        df = pd.read_csv(f'{self.root}/{self.tabular}')
+        line = df[df.iloc[:, 0] == self.samples[idx]]
+        tabular = torch.from_numpy(line.iloc[:, 1:-2].values).float().squeeze(0)
+        time = line['PFS/M'].values
+        event = line['censorship'].values
+        surv_array = torch.from_numpy(get_surv_array(time, event, self.intervals)).float().squeeze(0)
+        time = torch.from_numpy(time).float().squeeze(0)
+        event = torch.from_numpy(event).float().squeeze(0)
+        
+        return pt, ct, tabular, time, event, surv_array, idx
+
+    def norm(self, image, lower_percentile=0.5, upper_percentile=99.5):
+        lower_bound = np.percentile(image, lower_percentile)
+        upper_bound = np.percentile(image, upper_percentile)
+        image = np.clip(image, lower_bound, upper_bound)
+        mean = image.mean()
+        std = image.std()
+        image = (image - mean) / max(std, 1e-8)
+        return image
+    
+"""Dataset for original images"""
+class MyDataset_origin(Dataset):
     def __init__(self, root, tabular, samples, intervals, mode='train', transform=None, seed=0):
         self.root = root
         self.tabular = tabular

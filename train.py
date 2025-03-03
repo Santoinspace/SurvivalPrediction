@@ -5,12 +5,15 @@ import torch.optim as optim
 
 import os
 import numpy as np
+from lifelines.utils import concordance_index
 
 from config.config import get_args
 from dataloader.dataset import MyDataset, split_samples, get_transforms
-from models.model_multisurv import MultiSurv
+from models.model_1 import MultiModalFusionModel as Model
+# from models.model_multisurv import MultiSurv as Model
 from utils.loss import loss_nll
 from utils.logging import AverageMeter, Logger
+from utils.metrics import get_brier_score, calculate_time
 
 
 def main():
@@ -19,7 +22,8 @@ def main():
     args.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     min_test_loss = float('inf')
 
-    logger = Logger(os.path.join(args.results_path, 'logs\\multisurv'))
+    # TODO
+    logger = Logger(os.path.join(args.results_path, 'logs\\multisurv_new'))
 
     """data"""
     train_samples, val_samples, test_samples = split_samples(os.path.join(args.data_path, args.tabular_name), args.train_ratio, args.val_ratio, args.test_ratio)
@@ -30,7 +34,10 @@ def main():
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size_eval, shuffle=False, num_workers=args.num_workers, drop_last=False)
 
     """model"""
-    model = MultiSurv(args.t_dim, args.interval_num).to(args.device)
+    # model = Model(args.t_dim, args.interval_num).to(args.device)
+    model = Model(pet_in_channels=1, ct_in_channels=1, tabular_dim=args.t_dim,
+                                  feature_dim=512, num_heads=8, transformer_layers=1,
+                                  interval_num=args.interval_num).to(args.device)
 
     """criterion"""
     criterion = loss_nll
@@ -58,6 +65,7 @@ def main():
     start_epoch = 0
 
     if args.resume:
+        # TODO
         load_model(f'{args.model_path}/epoch_10.pth', model)
         epoch, min_test_loss = load_training_state(f'{args.model_path}/training_state_epoch_10.pth', optimizer, lr_scheduler)
         start_epoch = epoch + 1
@@ -88,19 +96,50 @@ def main():
 
         """validation"""
         model.eval()
+
+        time_list = []
+        event_list = []
+        time_pred_list = []
+        brier_score_list = []
+        surv_pred_list = []
+
         with torch.no_grad():
             for batch_idx, (pt, ct, tabular, time, event, surv_array, idx) in enumerate(val_dataloader):
                 pt = pt.to(args.device)
                 ct = ct.to(args.device)
                 tabular = tabular.to(args.device)
                 surv_array = surv_array.to(args.device)
+                time = np.array(time)
+                event = np.array(event)
+
+                time_list.append(time)
+                event_list.append(event)
 
                 pred = model(pt, ct, tabular)
+
                 loss = criterion(surv_array, pred, args.interval_num)
                 loss_meter.update(loss.item())
 
+                """cumulate metrics"""
+                surv_pred_list.append(pred.cpu().numpy())
+                time_pred_list.append(calculate_time(pred.cpu(), args.intervals))
+                
+                brier_score = get_brier_score(pred.cpu(), surv_array.cpu(), time, event, args.intervals)
+                if brier_score > 0:
+                    brier_score_list.append(brier_score)
+        
+        """calculate metrics"""
+        label_time = np.array(time_list).squeeze()
+        label_event = np.array(event_list).squeeze()
+        scores = np.array(time_pred_list).squeeze()
+        surv_preds = np.array(surv_pred_list).squeeze()
+        ci = concordance_index(label_time, scores, label_event)
+        bs = np.array(brier_score_list).mean()
+
         # print(f'Epoch: {epoch}, valid Loss: {loss_meter.avg}')
         logger.log('valid_loss', loss_meter.avg, epoch)
+        logger.log('valid_ci', ci, epoch)
+        logger.log('valid_bs', bs, epoch)
         
         """save model frequently"""
         if epoch % args.epoch_save_model_interval == 0:
