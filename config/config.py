@@ -1,6 +1,7 @@
 import argparse
 
 def get_args():
+    model_name = 'model_1'
     parser = argparse.ArgumentParser(description='MultiSurv 模型配置参数')
 
     # 路径设置
@@ -11,13 +12,13 @@ def get_args():
                             help='数据目录路径')
     path_group.add_argument('--tabular_name', default='clinal_test.csv', 
                             help='临床数据文件名')
-    path_group.add_argument('--model_path', default='D:\\AProjection\\SurvivalPrediction\\results\\checkpoints\\multisurv_new',
+    path_group.add_argument('--model_path', default=f'D:\\AProjection\\SurvivalPrediction\\results\\{model_name}\\checkpoints',
                             help='模型保存路径')
-    path_group.add_argument('--summary_path', default='D:\\AProjection\\SurvivalPrediction\\results\\summary\\multisurv_new',
-                            help='TensorBoard 日志保存路径')
 
     # 模型参数
     model_group = parser.add_argument_group('模型参数')
+    model_group.add_argument('--model_name', default=model_name,
+                           help='模型名称')
     model_group.add_argument('--t_dim', type=int, default=21, 
                            help='表格数据的特征维度')
     model_group.add_argument('--interval_num', type=int, default=4,
@@ -45,11 +46,11 @@ def get_args():
                            help='随机种子')
     train_group.add_argument('--fold_num', type=int, default=5,
                            help='交叉验证折数')
-    train_group.add_argument('--epoch_num', type=int, default=40,
+    train_group.add_argument('--epoch_num', type=int, default=10,
                            help='训练总轮次')
-    train_group.add_argument('--epoch_save_model_interval', type=int, default=8,
+    train_group.add_argument('--epoch_save_model_interval', type=int, default=5,
                            help='保存模型的间隔轮次')
-    train_group.add_argument('--lr', type=float, default=0.01,
+    train_group.add_argument('--lr', type=float, default=1,
                              help='学习率')
     train_group.add_argument('--weight_decay', type=float, default=0.0001,
                              help='权重衰减')
