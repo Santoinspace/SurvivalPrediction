@@ -213,8 +213,8 @@ def resnet50(**kwargs):
     model = ResNet(Bottleneck, [3, 4, 6, 3], **kwargs)
     return model
 
-
-net = MultiSurv()
-total = sum([param.nelement() for param in net.parameters() if param.requires_grad])
-# 精确地计算：1MB=1024KB=1048576字节
-print('Number of parameter: % .4fM' % (total / 1024 / 1024))
+if __name__ == '__main__':
+    net = MultiSurv()
+    total = sum([param.nelement() for param in net.parameters() if param.requires_grad])
+    # 精确地计算：1MB=1024KB=1048576字节
+    print('Number of parameter: % .4fM' % (total / 1024 / 1024))

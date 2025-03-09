@@ -1,7 +1,7 @@
 import argparse
 
 def get_args():
-    model_name = 'model_1'
+    model_name = 'tmss_SurvPath'
     parser = argparse.ArgumentParser(description='MultiSurv 模型配置参数')
 
     # 路径设置
@@ -23,9 +23,9 @@ def get_args():
                            help='表格数据的特征维度')
     model_group.add_argument('--interval_num', type=int, default=4,
                            help='生存区间数量')
-    model_group.add_argument('--train_ratio', type=float, default=0.2,
+    model_group.add_argument('--train_ratio', type=float, default=0.3,
                            help='训练集比例')
-    model_group.add_argument('--val_ratio', type=float, default=0.8,
+    model_group.add_argument('--val_ratio', type=float, default=0.7,
                            help='验证集比例')
     model_group.add_argument('--test_ratio', type=float, default=0,
                            help='测试集比例')

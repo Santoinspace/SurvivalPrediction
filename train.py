@@ -214,6 +214,9 @@ def main():
 
         """model"""
         model, criterion, optimizer, lr_scheduler = load_network(args=args,fold_k=k)
+        total_comsuption = sum([param.nelement() for param in model.parameters() if param.requires_grad])
+        # 精确地计算：1MB=1024KB=1048576字节
+        print(f'model name:{args.model_name}    Number of parameter: {(total_comsuption / 1024 / 1024):.4f}M')
 
         """train & eval"""
         start_epoch = 0

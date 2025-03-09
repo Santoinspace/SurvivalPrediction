@@ -162,3 +162,8 @@ if __name__ == "__main__":
     output = model(pet, ct, tabular)
     print("预测输出形状:", output.shape)  # 预期输出形状: (batch_size, interval_num)
     print("预测输出:", output)
+
+    # 统计模型参数量
+    model_name = 'MultiModalFusionModel'
+    total_comsuption = sum([param.nelement() for param in model.parameters() if param.requires_grad])
+    print(f'model name:{model_name}  Number of parameter: {(total_comsuption / 1024 / 1024):.4f}M')
