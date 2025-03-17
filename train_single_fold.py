@@ -9,12 +9,14 @@ from lifelines.utils import concordance_index
 
 from config.config import get_args
 from dataloader.dataset import MyDataset, split_samples, get_transforms
-# from models.model_1 import MultiModalFusionModel as Model
-# from models.model_multisurv import MultiSurv as Model
-from models.model_tmss_SurvPath import TMSS as Model
 from utils.loss import loss_nll
 from utils.logging import AverageMeter, Logger
 from utils.metrics import get_brier_score, calculate_time
+
+# from models.model_1 import MultiModalFusionModel as Model
+# from models.model_multisurv import MultiSurv as Model
+# from models.model_tmss_SurvPath import TMSS as Model
+from models.model_deepmtlr import DeepMTLR as Model
 
 
 def main():
@@ -24,7 +26,7 @@ def main():
     min_test_loss = float('inf')
 
     # TODO
-    logger = Logger(os.path.join(args.results_path, 'logs\\tmss_multisurv'))
+    logger = Logger(args.log_path)
 
     """data"""
     train_samples, val_samples, test_samples = split_samples(os.path.join(args.data_path, args.tabular_name), args.train_ratio, args.val_ratio, args.test_ratio)
@@ -35,12 +37,20 @@ def main():
     val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size_eval, shuffle=False, num_workers=args.num_workers, drop_last=False)
 
     """model"""
+    # train MultiSurv
     # model = Model(args.t_dim, args.interval_num).to(args.device)
+
+    # train model1
     # load_pretrained_model(r'D:\AProjection\SurvivalPrediction\pretrain\resnet18\MedicalNet_pytorch_files\pretrain\resnet_18_23dataset.pth', model.pt_encoder)
     # load_pretrained_model(r'D:\AProjection\SurvivalPrediction\pretrain\resnet18\MedicalNet_pytorch_files\pretrain\resnet_18_23dataset.pth', model.ct_encoder)
     # model = Model(pet_in_channels=1, ct_in_channels=1, tabular_dim=args.t_dim,
     #                               feature_dim=512, num_heads=8, transformer_layers=1,
     #                               interval_num=args.interval_num).to(args.device)
+
+    # train tmss_SurvPath
+    # model = Model(t_dim=args.t_dim, interval_num=args.interval_num).to(args.device)
+
+    # train deepmtlr
     model = Model(t_dim=args.t_dim, interval_num=args.interval_num).to(args.device)
 
     """criterion"""

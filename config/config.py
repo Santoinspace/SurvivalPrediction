@@ -1,7 +1,7 @@
 import argparse
 
 def get_args():
-    model_name = 'tmss_SurvPath'
+    model_name = 'deepMtlr'
     parser = argparse.ArgumentParser(description='MultiSurv 模型配置参数')
 
     # 路径设置
@@ -10,10 +10,12 @@ def get_args():
                             help='结果保存路径')
     path_group.add_argument('--data_path', default='D:\\AProjection\\SurvivalPrediction\\data\\preprocessed', 
                             help='数据目录路径')
-    path_group.add_argument('--tabular_name', default='clinal_test.csv', 
+    path_group.add_argument('--tabular_name', default='clinal.csv', 
                             help='临床数据文件名')
     path_group.add_argument('--model_path', default=f'D:\\AProjection\\SurvivalPrediction\\results\\{model_name}\\checkpoints',
                             help='模型保存路径')
+    path_group.add_argument('--log_path', default=f'D:\\AProjection\\SurvivalPrediction\\results\\{model_name}\\logs',
+                            help='日志保存路径')
 
     # 模型参数
     model_group = parser.add_argument_group('模型参数')
@@ -42,7 +44,7 @@ def get_args():
                            help='运行模式：训练或测试')
     train_group.add_argument('--device', default='cuda', choices=['cuda', 'cpu'],
                            help='使用的GPU设备编号')
-    train_group.add_argument('--seed', type=int, default=0,
+    train_group.add_argument('--seed', type=int, default=24,
                            help='随机种子')
     train_group.add_argument('--fold_num', type=int, default=5,
                            help='交叉验证折数')
@@ -75,6 +77,14 @@ def get_args():
                          help='验证曲线颜色')
     vis_group.add_argument('--color_test', default='#27ce82',
                          help='测试曲线颜色')
+    
+    # CoxPH参数
+    coxph_group = parser.add_argument_group('CoxPH参数')
+    coxph_group.add_argument('--feat_num', type=int, default=21,
+                           help='特征数量')
+    coxph_group.add_argument('--feat_cols', default=['age'],
+                           help='特征列名')
+    
 
     return parser.parse_args()
 

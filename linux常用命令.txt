@@ -1,4 +1,0 @@
-# 日志重定向到train.log文件。即在你的命令后加上：> train.log 2>&1
-python xxx.py > train.log 2>&1
-# 实时查看日志
-tail -f train.log

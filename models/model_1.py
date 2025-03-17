@@ -1,3 +1,11 @@
+"""
+模型架构
+- 3D CNN 模块：用于从 3D PET/CT 数据中提取特征。
+- 表格数据编码器：用于将 21 维的临床数据映射到 512 维度。
+- 多模态融合模块：将 3D CNN 提取的图像特征和表格数据编码器的特征进行融合。
+- 预测模块：使用融合后的特征进行生存分析预测。
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
