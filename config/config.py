@@ -1,16 +1,16 @@
 import argparse
 
 def get_args():
-    model_name = 'deepMtlr'
+    model_name = 'tmss_survpath_coxph'
     parser = argparse.ArgumentParser(description='MultiSurv 模型配置参数')
 
     # 路径设置
     path_group = parser.add_argument_group('路径设置')
     path_group.add_argument('--results_path', default='D:\\AProjection\\SurvivalPrediction\\results',
                             help='结果保存路径')
-    path_group.add_argument('--data_path', default='D:\\AProjection\\SurvivalPrediction\\data\\preprocessed', 
+    path_group.add_argument('--data_path', default='D:\\AProjection\\SurvivalPrediction\\data\\huaxi', 
                             help='数据目录路径')
-    path_group.add_argument('--tabular_name', default='clinal.csv', 
+    path_group.add_argument('--tabular_name', default='clinal_risk_score.csv', 
                             help='临床数据文件名')
     path_group.add_argument('--model_path', default=f'D:\\AProjection\\SurvivalPrediction\\results\\{model_name}\\checkpoints',
                             help='模型保存路径')
@@ -21,7 +21,7 @@ def get_args():
     model_group = parser.add_argument_group('模型参数')
     model_group.add_argument('--model_name', default=model_name,
                            help='模型名称')
-    model_group.add_argument('--t_dim', type=int, default=21, 
+    model_group.add_argument('--t_dim', type=int, default=22, 
                            help='表格数据的特征维度')
     model_group.add_argument('--interval_num', type=int, default=4,
                            help='生存区间数量')
@@ -44,13 +44,13 @@ def get_args():
                            help='运行模式：训练或测试')
     train_group.add_argument('--device', default='cuda', choices=['cuda', 'cpu'],
                            help='使用的GPU设备编号')
-    train_group.add_argument('--seed', type=int, default=24,
+    train_group.add_argument('--seed', type=int, default=42,
                            help='随机种子')
     train_group.add_argument('--fold_num', type=int, default=5,
                            help='交叉验证折数')
-    train_group.add_argument('--epoch_num', type=int, default=10,
+    train_group.add_argument('--epoch_num', type=int, default=50,
                            help='训练总轮次')
-    train_group.add_argument('--epoch_save_model_interval', type=int, default=5,
+    train_group.add_argument('--epoch_save_model_interval', type=int, default=25,
                            help='保存模型的间隔轮次')
     train_group.add_argument('--lr', type=float, default=1,
                              help='学习率')
@@ -58,7 +58,7 @@ def get_args():
                              help='权重衰减')
     train_group.add_argument('--momentum', type=float, default=0.9,
                              help='动量')
-    train_group.add_argument('--batch_size', type=int, default=2,
+    train_group.add_argument('--batch_size', type=int, default=16,
                            help='训练批大小')
     train_group.add_argument('--batch_size_eval', type=int, default=1,
                            help='评估批大小')

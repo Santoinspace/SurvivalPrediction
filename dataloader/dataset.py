@@ -52,7 +52,7 @@ def get_transforms():
         ])
 
 """Dataset for preprocessed images"""
-class MyDataset(Dataset):
+class MyDataset_preprocessed(Dataset):
     def __init__(self, root, tabular, samples, intervals, mode='train', transform=None, seed=0):
         self.root = root
         self.tabular = tabular
@@ -114,7 +114,7 @@ class MyDataset(Dataset):
         return image
     
 """Dataset for original images"""
-class MyDataset_origin(Dataset):
+class MyDataset(Dataset):
     def __init__(self, root, tabular, samples, intervals, mode='train', transform=None, seed=0):
         self.root = root
         self.tabular = tabular

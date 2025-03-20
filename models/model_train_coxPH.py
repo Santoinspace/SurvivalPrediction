@@ -158,8 +158,8 @@ class TrainerCoxPH():
         df = pd.read_csv(f'{root}/{tabular_csv}')
         lines = df.loc[df.iloc[:, 0].isin(samples)]
         tabular = lines.iloc[:, 1:feat_num + 1].values if feat_num > 0 else lines.iloc[:, feat_cols].values
-        time = lines.iloc[:, -1:].values
-        event = lines.iloc[:, -2:-1].values
+        time = lines.iloc[:, -2:-1].values
+        event = lines.iloc[:, -1:].values
         surv_arrays = np.zeros((0, self.args.interval_num * 2))
         for t, e in zip(time, event):
             surv_array = get_surv_array(t, e, self.args.intervals)[np.newaxis, ...]
@@ -180,6 +180,8 @@ class TrainerCoxPH():
         
         """cumulate metrics"""
         # scores是返回的风险值，越大越危险，存活的时间应该越短，作为生存期预测值，需要取负号
+        # for i in range(len(scores)):
+            # print(f"{i} ", " time:", time[i], " -scores:", -scores[i], " event:", event[i])
         ci = concordance_index(time, -scores, event)
         bs = 0
         # bs = get_brier_score(surv_pred, surv_array, time, event, self.args.intervals)

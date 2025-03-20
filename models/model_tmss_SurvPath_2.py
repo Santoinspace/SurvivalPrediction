@@ -196,7 +196,7 @@ class UNETR(nn.Module):
                 norm_name: Union[Tuple, str] = "instance",
                 conv_block: bool = True,
                 res_block: bool = True,
-                dropout_rate: float = 0.1,
+                dropout_rate: float = 0.2,
                 spatial_dims: int = 3,
     ) -> None:
 

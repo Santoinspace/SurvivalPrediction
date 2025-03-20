@@ -10,14 +10,18 @@ import pandas as pd
 import nibabel as nib
 from lifelines.utils import concordance_index
 from sklearn.model_selection import StratifiedKFold
+import math
 
 from config.config import get_args
 from dataloader.dataset import MyDataset, get_transforms
-from models.model_1 import MultiModalFusionModel as Model
-# from models.model_multisurv import MultiSurv as Model
 from utils.loss import loss_nll
-from utils.logging import AverageMeter, Logger
+from utils.my_logging import AverageMeter, Logger
 from utils.metrics import get_brier_score, calculate_time
+from utils.util import setup_seed
+
+# from models.model_1 import MultiModalFusionModel as Model
+# from models.model_multisurv import MultiSurv as Model
+from models.model_tmss_SurvPath import TMSS as Model
 
 """save single fold model"""
 def save_model_single(model, epoch, args, is_best=False):
@@ -75,9 +79,12 @@ def load_training_state(path, optimizer, lr_scheduler):
 def load_network(args, fold_k):
     """model"""
     # model = Model(args.t_dim, args.interval_num).to(args.device)
-    model = Model(pet_in_channels=1, ct_in_channels=1, tabular_dim=args.t_dim,
-                                  feature_dim=512, num_heads=8, transformer_layers=1,
-                                  interval_num=args.interval_num).to(args.device)
+    # model = Model(pet_in_channels=1, ct_in_channels=1, tabular_dim=args.t_dim,
+    #                               feature_dim=512, num_heads=8, transformer_layers=1,
+    #                               interval_num=args.interval_num).to(args.device)
+
+    # tmss_survpath
+    model = Model(args.t_dim, args.interval_num).to(args.device)
 
     # TODO
     # """pretrained model"""
@@ -86,21 +93,34 @@ def load_network(args, fold_k):
     criterion = loss_nll
 
     """optimizer"""
-    optimizer = torch.optim.Adam(model.parameters(), lr=1)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=1)
+
+    # 统一学习率配置
+    optimizer = torch.optim.AdamW(
+        model.parameters(), 
+        lr=3e-4,          # 统一学习率
+        weight_decay=1e-5  # 保持原有正则化强度
+    )
 
     """lr_scheduler"""
-    def rule(epoch):
-        if epoch < 20:
-            lamb = 1e-4
-        elif epoch < 40:
-            lamb = 5e-5
-        elif epoch < 60:
-            lamb = 1e-5
-        else:
-            lamb = 1e-6
-        return lamb
+    # def rule(epoch):
+    #     if epoch < 20:
+    #         lamb = 1e-4
+    #     elif epoch < 40:
+    #         lamb = 5e-5
+    #     elif epoch < 60:
+    #         lamb = 1e-5
+    #     else:
+    #         lamb = 1e-6
+    #     return lamb
+    # lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=rule)
 
-    lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=rule)
+    # 简化后的余弦退火调度
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, 
+        T_max=args.epoch_num,  # 完整训练周期
+        eta_min=1e-6          # 最小学习率
+    )
 
     return model, criterion, optimizer, lr_scheduler
 
@@ -183,6 +203,7 @@ def main():
     args = get_args()
     args.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     min_test_loss = float('inf')
+    setup_seed(args.seed)
 
     tabular_data = pd.read_csv(os.path.join(args.data_path, args.tabular_name), encoding='utf-8').iloc[:]
     samples = tabular_data['xing_ming'].tolist()
@@ -222,8 +243,8 @@ def main():
         start_epoch = 0
         ci_meter = AverageMeter()
         for epoch in range(start_epoch, args.epoch_num):
-            train_logger = Logger(os.path.join(args.results_path, f'{args.model_name}\\logs\\train\\fold_{k}'))
-            val_logger = Logger(os.path.join(args.results_path, f'{args.model_name}\\logs\\eval\\fold_{k}'))
+            train_logger = Logger(os.path.join(args.log_path, f'train\\fold_{k}'))
+            val_logger = Logger(os.path.join(args.log_path, f'eval\\fold_{k}'))
             model, optimizer, lr_scheduler = train_one_epoch(
                 args=args,
                 fold=k,

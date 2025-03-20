@@ -415,7 +415,7 @@ class PatchEmbeddingBlock(nn.Module):
                 f" num_time_bins={self.num_time_bins})")
 
 if __name__ == '__main__':
-    net = TMSS(t_dim=21)
+    net = TMSS(t_dim=21,interval_num=4)
      # 生成模拟数据
     batch_size = 2
     # PET图像 [B, 1, 112, 112, 112]

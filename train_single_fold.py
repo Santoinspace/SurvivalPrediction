@@ -10,7 +10,7 @@ from lifelines.utils import concordance_index
 from config.config import get_args
 from dataloader.dataset import MyDataset, split_samples, get_transforms
 from utils.loss import loss_nll
-from utils.logging import AverageMeter, Logger
+from utils.my_logging import AverageMeter, Logger
 from utils.metrics import get_brier_score, calculate_time
 
 # from models.model_1 import MultiModalFusionModel as Model
