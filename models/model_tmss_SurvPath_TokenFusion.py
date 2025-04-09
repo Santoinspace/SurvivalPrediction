@@ -196,7 +196,7 @@ class UNETR(nn.Module):
                 norm_name: Union[Tuple, str] = "instance",
                 conv_block: bool = True,
                 res_block: bool = True,
-                dropout_rate: float = 0.2,
+                dropout_rate: float = 0.0,
                 spatial_dims: int = 3,
     ) -> None:
 
@@ -229,27 +229,42 @@ class UNETR(nn.Module):
             spatial_dims=spatial_dims,
         )
 
-        self.cross_attender = MMAttentionLayer(
-            dim=self.hidden_size,
-            dim_head=self.hidden_size // 2,
-            heads=2,
-            residual=False,
-            dropout=0.1,
-            num_pathways = self.num_pathways
+         # 新增动态令牌融合模块
+        self.dynamic_fusion = nn.Sequential(
+            nn.Linear(hidden_size, hidden_size // 4),
+            nn.ReLU(),
+            nn.Linear(hidden_size // 4, self.num_pathways + 1),  # +1用于临床数据
+            nn.Softmax(dim=-1)
         )
 
-        self.sigmoid = nn.Sigmoid()
+        # 改进的跨模态注意力
+        self.cross_attender = nn.ModuleList([
+            MMAttentionLayer(
+                dim=hidden_size,
+                dim_head=hidden_size // num_heads,
+                heads=num_heads,
+                residual=True,  # 添加残差连接
+                dropout=dropout_rate,
+                num_pathways=self.num_pathways
+            ) for _ in range(2)  # 双层注意力
+        ])
 
-        # feedforward network
-        self.feed_forward = FeedForward(self.hidden_size, dropout=dropout_rate)
-        self.layer_norm = nn.LayerNorm(self.hidden_size)
+        # 改进的特征聚合
+        self.aggregate = nn.Sequential(
+            nn.LayerNorm(hidden_size * 2),
+            nn.Linear(hidden_size * 2, hidden_size),
+            nn.GELU(),
+            nn.Dropout(dropout_rate)
+        )
 
         # when both top and bottom blocks 
         self.to_logits = nn.Sequential(
-                nn.Linear(self.hidden_size * 2, int(self.hidden_size/4)),
+                nn.Linear(self.hidden_size, int(self.hidden_size/4)),
                 nn.ReLU(),
                 nn.Linear(int(self.hidden_size/4), self.num_classes)
             )
+    
+        self.sigmoid = nn.Sigmoid()
 
     def proj_feat(self, x, hidden_size, feat_size):
         new_view = (x.size(0), *feat_size, hidden_size)
@@ -264,24 +279,21 @@ class UNETR(nn.Module):
 
         x = self.patch_embedding(x_in)
 
-        feats = torch.mean(x, dim=1)
-        x = self.cross_attender(x)
+        # 动态令牌融合
+        # modality_weights = self.dynamic_fusion(x.mean(dim=1))  # [B, num_modalities]
+        # x = x * modality_weights.unsqueeze(2)  # 加权融合
 
-        mm_embed = self.feed_forward(x)
-        mm_embed = self.layer_norm(x)
+        # 多层交叉注意力
+        for attn in self.cross_attender:
+            x = attn(x) + x  # 残差连接
 
-        #---> aggregate 
-        # modality specific mean 
-        paths_postSA_embed = mm_embed[:, :self.num_pathways, :]
-        paths_postSA_embed = torch.mean(paths_postSA_embed, dim=1)
-
-        wsi_postSA_embed = mm_embed[:, self.num_pathways:, :]
-        wsi_postSA_embed = torch.mean(wsi_postSA_embed, dim=1)
-
-        # when both top and bottom block
-        embedding = torch.cat([paths_postSA_embed, wsi_postSA_embed], dim=1)
-
-        x = self.to_logits(embedding)
+       # 改进的特征聚合
+        paths_embed = x[:, :self.num_pathways, :].mean(dim=1)
+        wsi_embed = x[:, self.num_pathways:, :].mean(dim=1)
+        fused = self.aggregate(torch.cat([paths_embed, wsi_embed], dim=1))
+        
+        # 最终预测
+        x = self.to_logits(fused)
         pred = self.sigmoid(x)
         
         return pred
@@ -415,7 +427,7 @@ class PatchEmbeddingBlock(nn.Module):
                 f" num_time_bins={self.num_time_bins})")
 
 if __name__ == '__main__':
-    net = TMSS(t_dim=21)
+    net = TMSS(t_dim=21,interval_num=4)
      # 生成模拟数据
     batch_size = 2
     # PET图像 [B, 1, 112, 112, 112]

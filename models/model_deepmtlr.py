@@ -349,7 +349,24 @@ def mtlr_risk(logits: torch.Tensor) -> torch.Tensor:
     return torch.sum(hazard.cumsum(1), dim=1)
 
 if __name__ == '__main__':
-    net = DeepMTLR(t_dim=21)
-    total = sum([param.nelement() for param in net.parameters()])
+    net = DeepMTLR(t_dim=21,interval_num=4)
+     # 生成模拟数据
+    batch_size = 2
+    # PET图像 [B, 1, 112, 112, 112]
+    pt = torch.randn(batch_size, 1, 112, 112, 112)
+    # CT图像 [B, 1, 112, 112, 112] 
+    ct = torch.randn(batch_size, 1, 112, 112, 112)
+    # 临床数据 [B, 15]
+    ta = torch.randn(batch_size, 21)
+    
+    # 前向传播测试
+    pred, feats = net(pt, ct, ta)
+    
+    # 输出形状验证
+    print(f"Prediction shape: {pred.shape}")  # 应输出 torch.Size([2, 10])
+    print(f"Features shape: {feats.shape}")   # 应输出 torch.Size([2, 768])
+    
+    total = sum([param.nelement() for param in net.parameters() if param.requires_grad])
     # 精确地计算：1MB=1024KB=1048576字节
     print('Number of parameter: % .4fM' % (total / 1024 / 1024))
+

@@ -717,5 +717,9 @@ def mtlr_risk(logits: torch.Tensor) -> torch.Tensor:
 
 net = TMSS(t_dim=15)
 total = sum([param.nelement() for param in net.parameters() if param.requires_grad])
+# 打印每一层的参数量
+for name, param in net.named_parameters():
+    if param.requires_grad:
+        print(name, param.numel())
 # 精确地计算：1MB=1024KB=1048576字节
 print('Number of parameter: % .4fM' % (total / 1024 / 1024))

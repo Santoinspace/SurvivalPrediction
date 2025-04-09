@@ -1,5 +1,3 @@
-"""利用CoxPH"""
-
 from pathlib import Path
 import torch
 import torch.nn as nn
@@ -23,7 +21,8 @@ from utils.util import setup_seed
 
 # from models.model_1 import MultiModalFusionModel as Model
 # from models.model_multisurv import MultiSurv as Model
-from models.model_tmss_SurvPath import TMSS as Model
+# from models.model_tmss_SurvPath import TMSS as Model
+from models.model_tmss_SurvPath_MTLR_EHRToken import TMSS as Model
 
 """save single fold model"""
 def save_model_single(model, epoch, args, is_best=False):
@@ -200,47 +199,6 @@ def eval_one_epoch(args, fold, epoch, summary_writer, data_loader, model, criter
 
     return ci, bs, label_time, label_event, scores, surv_preds
 
-def coxPH_argument_data(args, train_samples, val_samples):
-    """
-    1. 读取数据集
-    2. 训练coxph模型
-    3. 预测所有数据集的生存时间
-    4. 将预测值写入tabular
-    5. 保存新的tabular
-    """
-    # 读取数据集
-    tabular_data = pd.read_csv(os.path.join(args.data_path, args.tabular_name), encoding='utf-8').iloc[:]
-
-    # 训练coxph模型
-    from lifelines import CoxPHFitter
-    cph = CoxPHFitter(penalizer=0.1)
-    cox_data = tabular_data[tabular_data['xing_ming'].isin(train_samples)]
-    feat = cox_data.iloc[:, 1:-2].values
-    time = cox_data.iloc[:, -2].values
-    event = cox_data.iloc[:, -1].values
-    df = pd.DataFrame(feat, columns=[f"feature_{i}" for i in range(feat.shape[1])])
-    df['duration'] = time
-    df['event'] = event
-
-    cph.fit(df, duration_col='duration', event_col='event')
-
-    # 预测所有数据集的生存时间
-    all_feat = tabular_data.iloc[:, 1:-2].values
-    all_time = tabular_data.iloc[:, -2].values
-    all_event = tabular_data.iloc[:, -1].values
-    all_data = pd.DataFrame(all_feat, columns=[f"feature_{i}" for i in range(all_feat.shape[1])])
-    all_data['duration'] = all_time
-    all_data['event'] = all_event
-
-    all_scores = cph.predict_partial_hazard(all_data)
-
-    # 将预测值写入tabular 的倒数第三列
-
-    tabular_data.insert(tabular_data.shape[1]-2, 'risk_score', all_scores.astype(np.float32))
-
-    # 保存新的tabular
-    tabular_data.to_csv(os.path.join(args.data_path, args.tabular_name_argument), index=False)
-
 def main():
     """config"""
     args = get_args()
@@ -268,14 +226,9 @@ def main():
         """data"""
         train_samples = [samples[i] for i in train_index]
         val_samples = [samples[i] for i in eval_index]
-
-        args.tabular_name_argument = f'tabular_fold_{k}.csv'
-
-        coxPH_argument_data(args, train_samples, val_samples)
-
-        train_dataset = MyDataset(args.data_path, args.tabular_name_argument, train_samples, args.intervals, args.mode, get_transforms(), args.seed)
+        train_dataset = MyDataset(args.data_path, args.tabular_name, train_samples, args.intervals, args.mode, get_transforms(), args.seed)
         train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
-        val_dataset = MyDataset(args.data_path, args.tabular_name_argument, val_samples, args.intervals, args.mode, get_transforms(), args.seed)
+        val_dataset = MyDataset(args.data_path, args.tabular_name, val_samples, args.intervals, args.mode, get_transforms(), args.seed)
         val_dataloader = torch.utils.data.DataLoader(val_dataset, batch_size=args.batch_size_eval, shuffle=False, num_workers=args.num_workers, drop_last=False)
         
         print(f'Fold {k}')

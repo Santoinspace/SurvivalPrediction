@@ -5,3 +5,4 @@ temp_tools/
 TODO
 pretrain
 *.yaml
+.vscode/

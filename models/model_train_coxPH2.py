@@ -15,6 +15,7 @@ from loguru import logger
 from tensorboardX import SummaryWriter
 from sklearn.model_selection import StratifiedKFold
 from lifelines.utils import concordance_index
+from lifelines import CoxPHFitter, KaplanMeierFitter
 
 import os
 import sys
@@ -72,21 +73,35 @@ class TrainerCoxPH():
         
         summary_writer = SummaryWriter(f'{self.result_path}/summary')
         
-        for _, eval_index in kf.split(samples, events):
+        for train_index, eval_index in kf.split(samples, events):
             """log"""
             k += 1
             logger.info(f'Fold: {k}')
             
             """data"""
+            sample_train = [samples[i] for i in train_index]
             samples_eval = [samples[i] for i in eval_index]
-            data = self.load_data(root=self.dataset_path, tabular_csv=self.args.tabular_name, 
+
+            train_data = self.load_data(root=self.dataset_path, tabular_csv=self.args.tabular_name, 
+                                  feat_num=self.args.feat_num, samples=sample_train, feat_cols=self.args.feat_cols)
+            valid_data = self.load_data(root=self.dataset_path, tabular_csv=self.args.tabular_name,
                                   feat_num=self.args.feat_num, samples=samples_eval, feat_cols=self.args.feat_cols)
-            
+    
+            """model"""
+            tabular, time, event, surv_array = train_data
+
+            df = pd.DataFrame(tabular, columns=[f"feature_{i}" for i in range(tabular.shape[1])])
+            df['duration'] = time
+            df['event'] = event
+            cph = CoxPHFitter(penalizer=0.1)
+            cph.fit(df, duration_col='duration', event_col='event')
+
             """eval"""
             ci, bs, p_value, aucs, label_time, label_event, scores, feats = self.eval_one_epoch(
                 fold=k,
                 summary_writer=summary_writer,
-                data=data,
+                data=valid_data,
+                model=cph,
             )
             
             ci_of_all_folds.append(ci)
@@ -172,11 +187,16 @@ class TrainerCoxPH():
         fold,
         summary_writer,
         data,
+        model,
     ):
         tabular, time, event, surv_array = data
         
         """pred"""
-        scores = coxph(tabular, time, event)
+        df = pd.DataFrame(tabular, columns=[f"feature_{i}" for i in range(tabular.shape[1])])
+        df['duration'] = time
+        df['event'] = event
+
+        scores = model.predict_partial_hazard(df)
         
         """cumulate metrics"""
         # scores是返回的风险值，越大越危险，存活的时间应该越短，作为生存期预测值，需要取负号

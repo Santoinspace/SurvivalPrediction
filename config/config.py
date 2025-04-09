@@ -8,10 +8,12 @@ def get_args():
     path_group = parser.add_argument_group('路径设置')
     path_group.add_argument('--results_path', default='D:\\AProjection\\SurvivalPrediction\\results',
                             help='结果保存路径')
-    path_group.add_argument('--data_path', default='D:\\AProjection\\SurvivalPrediction\\data\\huaxi', 
+    path_group.add_argument('--data_path', default='D:\\AProjection\\SurvivalPrediction\\data\\preprocessed', 
                             help='数据目录路径')
-    path_group.add_argument('--tabular_name', default='clinal_risk_score.csv', 
+    path_group.add_argument('--tabular_name', default='clinal.csv', 
                             help='临床数据文件名')
+    path_group.add_argument('--tabular_name_argument', default='clinal_cox.csv', 
+                            help='增强后的临床数据文件名')
     path_group.add_argument('--model_path', default=f'D:\\AProjection\\SurvivalPrediction\\results\\{model_name}\\checkpoints',
                             help='模型保存路径')
     path_group.add_argument('--log_path', default=f'D:\\AProjection\\SurvivalPrediction\\results\\{model_name}\\logs',
@@ -48,7 +50,7 @@ def get_args():
                            help='随机种子')
     train_group.add_argument('--fold_num', type=int, default=5,
                            help='交叉验证折数')
-    train_group.add_argument('--epoch_num', type=int, default=50,
+    train_group.add_argument('--epoch_num', type=int, default=1,
                            help='训练总轮次')
     train_group.add_argument('--epoch_save_model_interval', type=int, default=25,
                            help='保存模型的间隔轮次')
